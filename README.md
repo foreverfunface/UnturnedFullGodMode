@@ -1,4 +1,4 @@
-# Unturned-FullGodMode
+# UnturnedFullGodMode
 Advanced god mode plugin for Unturned Server
 
 Copy to Rocket Plugins folder for install
