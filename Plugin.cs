@@ -28,36 +28,29 @@ namespace FullGodMode
         {
             Instance = this;
             MessageColor = UnturnedChat.GetColorFromName(Configuration.Instance.MessageColor, UnityEngine.Color.black);
-            DamageTool.playerDamaged += OnPlayerDamaged;
+            DamageTool.damagePlayerRequested += DamageTool_damagePlayerRequested;
+        }
+
+        private void DamageTool_damagePlayerRequested(ref DamagePlayerParameters parameters, ref bool shouldAllow)
+        {
+            UnturnedPlayer player = UnturnedPlayer.FromPlayer(parameters.player);
+
+            if (player.GodMode || player.VanishMode)
+            {
+                parameters.virusModifier = 0;
+                parameters.waterModifier = 0;
+                parameters.ragdollEffect = ERagdollEffect.NONE;
+                parameters.damage = 0;
+                parameters.bleedingModifier = DamagePlayerParameters.Bleeding.Never;
+                parameters.bonesModifier = DamagePlayerParameters.Bones.None;
+                parameters.cause = EDeathCause.FOOD;
+                parameters.limb = ELimb.SPINE;
+            }
         }
 
         protected override void Unload()
         {
-            DamageTool.playerDamaged -= OnPlayerDamaged;
-        }
-
-        void OnPlayerDamaged(Player player, ref EDeathCause cause, ref ELimb limb, ref CSteamID killer, ref UnityEngine.Vector3 direction, ref float damage, ref float times, ref bool canDamage)
-        {
-            UnturnedPlayer untKiller = UnturnedPlayer.FromCSteamID(killer);
-            UnturnedPlayer untVictim = UnturnedPlayer.FromPlayer(player);
-
-            // Remove any of those pesky errors
-            if (untKiller?.Player != null)
-            {
-                if (untKiller.GodMode || untKiller.VanishMode)
-                {
-                    Logger.Log($"{untKiller.Player.name} *>> {untVictim.Player.name}");
-                    canDamage = false;
-                }
-            }
-            else
-            {
-                if (untVictim.GodMode || untVictim.VanishMode)
-                {
-                    Logger.Log($"{untVictim.Player.name} damaged");
-                    canDamage = false;
-                }
-            }
+            DamageTool.damagePlayerRequested -= DamageTool_damagePlayerRequested;
         }
     }
 }
