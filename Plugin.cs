@@ -10,6 +10,7 @@ using Rocket.API.Collections;
 using Rocket.Core.Logging;
 using Rocket.Core.Plugins;
 using Rocket.Unturned.Chat;
+using Rocket.Unturned.Events;
 using Rocket.Unturned.Player;
 #endregion
 #region Unturned
@@ -19,45 +20,54 @@ using Steamworks;
 
 namespace FullGodMode
 {
-    public class FullGodMode : RocketPlugin<PluginConfiguration>
+    public class FullGodMode : RocketPlugin
     {
         public static FullGodMode Instance { get; private set; }
-        public UnityEngine.Color MessageColor { get; private set; }
 
         protected override void Load()
         {
             Instance = this;
-            MessageColor = UnturnedChat.GetColorFromName(Configuration.Instance.MessageColor, UnityEngine.Color.black);
-            DamageTool.playerDamaged += OnPlayerDamaged;
+            DamageTool.damagePlayerRequested += DamageTool_damagePlayerRequested;
+            UnturnedPlayerEvents.OnPlayerUpdateBroken += UnturnedPlayerEvents_OnPlayerUpdateBroken;
+            UnturnedPlayerEvents.OnPlayerUpdateBleeding += UnturnedPlayerEvents_OnPlayerUpdateBleeding;
+        }
+
+        private void UnturnedPlayerEvents_OnPlayerUpdateBleeding(UnturnedPlayer player, bool bleeding)
+        {
+            if (player.GodMode || player.VanishMode) player.Bleeding = false;
+        }
+
+        private void UnturnedPlayerEvents_OnPlayerUpdateBroken(UnturnedPlayer player, bool broken)
+        {
+            if (player.GodMode || player.VanishMode) player.Broken = false;
+        }
+
+        private void DamageTool_damagePlayerRequested(ref DamagePlayerParameters parameters, ref bool shouldAllow)
+        {
+            UnturnedPlayer player = UnturnedPlayer.FromPlayer(parameters.player);
+
+            if (player.GodMode || player.VanishMode)
+            {
+                shouldAllow = false;
+                parameters.virusModifier = 0;
+                parameters.waterModifier = 0;
+                parameters.ragdollEffect = ERagdollEffect.NONE;
+                parameters.damage = 0;
+                parameters.bleedingModifier = DamagePlayerParameters.Bleeding.Heal;
+                parameters.bonesModifier = DamagePlayerParameters.Bones.Heal;
+                parameters.cause = EDeathCause.FOOD;
+                parameters.limb = ELimb.SPINE;
+                parameters.trackKill = false;
+                parameters.times = 0;
+                parameters.hallucinationModifier = 0;
+            }
         }
 
         protected override void Unload()
         {
-            DamageTool.playerDamaged -= OnPlayerDamaged;
-        }
-
-        void OnPlayerDamaged(Player player, ref EDeathCause cause, ref ELimb limb, ref CSteamID killer, ref UnityEngine.Vector3 direction, ref float damage, ref float times, ref bool canDamage)
-        {
-            UnturnedPlayer untKiller = UnturnedPlayer.FromCSteamID(killer);
-            UnturnedPlayer untVictim = UnturnedPlayer.FromPlayer(player);
-
-            // Remove any of those pesky errors
-            if (untKiller?.Player != null)
-            {
-                if (untKiller.GodMode || untKiller.VanishMode)
-                {
-                    Logger.Log($"{untKiller.Player.name} *>> {untVictim.Player.name}");
-                    canDamage = false;
-                }
-            }
-            else
-            {
-                if (untVictim.GodMode || untVictim.VanishMode)
-                {
-                    Logger.Log($"{untVictim.Player.name} damaged");
-                    canDamage = false;
-                }
-            }
+            DamageTool.damagePlayerRequested -= DamageTool_damagePlayerRequested;
+            UnturnedPlayerEvents.OnPlayerUpdateBroken -= UnturnedPlayerEvents_OnPlayerUpdateBroken;
+            UnturnedPlayerEvents.OnPlayerUpdateBleeding -= UnturnedPlayerEvents_OnPlayerUpdateBleeding;
         }
     }
 }
