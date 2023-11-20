@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Rocket.API;
 #endregion
 #region Rocket
 using Rocket.API.Collections;
@@ -30,6 +31,22 @@ namespace FullGodMode
             DamageTool.damagePlayerRequested += DamageTool_damagePlayerRequested;
             UnturnedPlayerEvents.OnPlayerUpdateBroken += UnturnedPlayerEvents_OnPlayerUpdateBroken;
             UnturnedPlayerEvents.OnPlayerUpdateBleeding += UnturnedPlayerEvents_OnPlayerUpdateBleeding;
+            UnturnedPlayerEvents.OnPlayerUpdateStamina += UnturnedPlayerEvents_OnPlayerUpdateStamina;
+        }
+
+        private void UnturnedPlayerEvents_OnPlayerUpdateStamina(UnturnedPlayer player, byte stamina)
+        {
+            if (player.GodMode && stamina < 30)
+            {
+                try
+                {
+                    player.Player.life.askRest(Convert.ToByte(100 - Convert.ToInt32(stamina)));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+            }
         }
 
         private void UnturnedPlayerEvents_OnPlayerUpdateBleeding(UnturnedPlayer player, bool bleeding)
@@ -60,6 +77,8 @@ namespace FullGodMode
                 parameters.trackKill = false;
                 parameters.times = 0;
                 parameters.hallucinationModifier = 0;
+
+                
             }
         }
 
