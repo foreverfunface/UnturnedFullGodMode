@@ -8,3 +8,4 @@ Enter `/god` for use.
  - [x] Anti-bonebroken
  - [x] Reduce 99.9% damage
  - [x] Restore immune system on damage
+ - [x] Infinite stamina
